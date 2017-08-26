@@ -1,0 +1,76 @@
+apply plugin: 'com.android.application'
+
+def version = 1
+System.setProperty("appName", "ItemMenuExample")
+System.setProperty("appVersion", "1."+version.toString())
+
+allprojects {
+    repositories {
+        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+        jcenter()
+    }
+}
+
+android {
+    compileSdkVersion 26
+    buildToolsVersion '26.0.1'
+    defaultConfig {
+        applicationId "com.ongoza.itemsmenu"
+        minSdkVersion 21
+        targetSdkVersion 21
+        versionCode version
+        versionName System.getProperty("appVersion")
+    }
+    buildTypes {
+        debug {
+            resValue 'string', 'app_name', System.getProperty("appName")
+            debuggable true
+            resValue 'string', 'app_version', System.getProperty("appVersion")
+        }
+        release {
+            minifyEnabled false
+            resValue 'string', 'app_name', System.getProperty("appName")
+            resValue 'string', 'app_version', System.getProperty("appVersion")
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFile '/home/os/VRTE3/app/proguard-rules.pro'
+        }
+    }
+    applicationVariants.all { variant ->
+        variant.outputs.each { output ->
+            output.outputFile = new File(
+                    output.outputFile.parent,
+                    System.getProperty("appName") + ".apk")
+        }
+    }
+    // ignore the x86 and arm-v8 files from the google vr libraries
+    packagingOptions {
+        exclude 'lib/x86/libgvrbase.so'
+        exclude 'lib/arm64-v8a/libgvrbase.so'
+        if (!rootProject.hasProperty("ARM64")) {
+            exclude 'lib/arm64-v8a/*.so'
+        }
+    }
+    productFlavors {
+    }
+}
+
+task copyOculusSignature(type: Copy) {
+    if (project.hasProperty("OCULUS_SIGS_DIRECTORY")) {
+        copy {
+            from project.property("OCULUS_SIGS_DIRECTORY")
+            into 'src/main/assets'
+            include 'oculussig_*'
+        }
+    }
+}
+
+preBuild {}.dependsOn copyOculusSignature
+
+dependencies {
+    compile 'org.gearvrf:framework:3.2'
+    compile 'org.gearvrf:backend_oculus:3.2'
+    compile 'org.joml:joml-android:1.9.1-SNAPSHOT'
+    compile 'org.gearvrf:backend_daydream:3.2'
+    compile 'com.google.vr:sdk-base:1.80.0'
+
+}
