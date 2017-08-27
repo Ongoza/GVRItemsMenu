@@ -14,6 +14,9 @@ import org.gearvrf.GVRSphereCollider;
 import org.gearvrf.GVRTexture;
 import org.json.JSONObject;
 
+import java.util.HashMap;
+import java.util.Iterator;
+
 /**
  * Created by os on 8/25/17.
  */
@@ -27,7 +30,7 @@ class TutorialItem extends GVRSceneObject {
     private GVRTexture defaultTexture;
     private String BUTTON_TYPE_MENU;
     float[] sizeObj;
-    private JSONObject jsonObject;
+    JSONObject jsonObject;
     String number;
 
     TutorialItem(GVRContext gContext, int i, float[] size, float locx, float locy, GVRTexture texture, String cmd, String cmdItem) {
@@ -35,6 +38,7 @@ class TutorialItem extends GVRSceneObject {
         this.gContext = gContext;
         this.number = String.valueOf(i); sizeObj = size; BUTTON_TYPE_MENU = cmd; BUTTON_TYPE_ITEM = cmdItem;
         defaultTexture = texture;
+        jsonObject = new JSONObject();
 //           Log.d(TAG,"start create item i="+cmd+"item"+cmdItem);
         empty = true;
         root = new GVRSceneObject(gContext,size[0],size[1],texture);
@@ -43,29 +47,56 @@ class TutorialItem extends GVRSceneObject {
     }
 
     void addItem(JSONObject jObj){
-        try{jsonObject = jObj;
-            String id = jsonObject.getString("_id");
-            String[] txt = new String[3];
-            txt[0] = jsonObject.getString("name");
-//            Log.d(TAG,"start add item "+txt[0]);
-            txt[1] = jsonObject.getString("course");
-            txt[2] = jsonObject.getString("author");
-            int fillColor = Color.parseColor(jsonObject.getString("backColor"));
-            int fontColor = Color.parseColor(jsonObject.getString("fontColor"));
-            String fs = jsonObject.getString("fontSize");
-            int fontSize = Integer.valueOf(fs);
-//            Log.d(TAG,"item fsize 2 ="+fontSize);
-            GVRTexture texture = createTextTexture(txt,fontSize,fontColor,fillColor);
+        jsonObject = jObj; boolean ok=false;
+//        Log.d(TAG,"Start add item "+jObj);
+        String[] txt = new String[3];
+        String id="";
+        try{id = jsonObject.getString("_id"); txt[0] = jsonObject.getString("Name"); ok=true;
+        }catch (Exception e){Log.d(TAG,"Add Item. Can not parse item object for tutorial "+jObj); txt[1]="Can not load data from server";}
+        if(ok) {
+            txt[1] = "No data";
+            txt[2] = "No data";
+            try {
+                txt[1] = jsonObject.getString("Course");
+            } catch (Exception e) {
+                Log.d(TAG, "Add Item. Can not extract parameter \"Cource\" for tutorial "+id);
+            }
+            try {
+                txt[2] = jsonObject.getString("Author");
+            } catch (Exception e) {
+                Log.d(TAG, "Add Item. Can not extract parameter \"Author\" for tutorial "+id);
+            }
+            int fillColor = TutorialMenu.EMPTY_ITEM_COLOR;
+            try {
+                fillColor = Color.parseColor(jsonObject.getString("backColor"));
+            } catch (Exception e) {
+                Log.d(TAG, "Add Item. Can not extract parameter \"backColor\" for tutorial "+id);
+            }
+            int fontColor = TutorialMenu.EMPTY_ITEM_COLOR;
+            try {
+                fontColor = Color.parseColor(jsonObject.getString("fontColor"));
+            } catch (Exception e) {
+                Log.d(TAG, "Add Item. Can not extract parameter \"fontColor\" for tutorial "+id);
+            }
+            int fontSize = 30;
+            try {
+                fontColor = Integer.valueOf(jsonObject.getString("fontSize"));
+            } catch (Exception e) {
+                Log.d(TAG, "Add Item. Can not extract parameter \"fontSize\" for tutorial "+id);
+            }
+            GVRTexture texture = createTextTexture(txt, fontSize, fontColor, fillColor);
             root.getRenderData().getMaterial().setMainTexture(texture);
-            String[] tag={BUTTON_TYPE_MENU,BUTTON_TYPE_ITEM,number,id}; root.setTag(tag);
+            String[] tag = {BUTTON_TYPE_MENU, BUTTON_TYPE_ITEM, number, id};
+            root.setTag(tag);
             root.attachCollider(new GVRSphereCollider(gContext));
             empty = false;
-//            Log.d(TAG,"end add item "+txt[0]);
-        }catch (Exception e){Log.d(TAG,"Can not parse item object");}
+        }
+//       Log.d(TAG,"end add item "+txt[0]);
     }
 
     void removeItem(){
         if(!empty){
+            jsonObject = new JSONObject();
             root.detachCollider();
             String[] tag={BUTTON_TYPE_ITEM,number,""}; root.setTag(tag);
             root.getRenderData().getMaterial().setMainTexture(defaultTexture);

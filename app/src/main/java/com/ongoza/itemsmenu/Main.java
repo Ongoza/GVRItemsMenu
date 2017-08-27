@@ -1,3 +1,7 @@
+//todo add connection Manager for downloading data in different threads
+//todo save local configuration and data
+//todo authenticaton from oculus
+
 package com.ongoza.itemsmenu;
 
 import android.content.Context;

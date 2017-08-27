@@ -1,6 +1,3 @@
-//todo Add "show item details" window
-
-
 package com.ongoza.itemsmenu;
 
 import android.graphics.Bitmap;
@@ -18,12 +15,16 @@ import org.gearvrf.GVRScene;
 import org.gearvrf.GVRSceneObject;
 import org.gearvrf.GVRSphereCollider;
 import org.gearvrf.GVRTexture;
+import org.gearvrf.scene_objects.GVRTextViewSceneObject;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.Arrays;
+import java.util.HashMap;
 
+import static java.lang.Math.atan;
 import static java.lang.Math.floor;
+import static java.lang.Math.toDegrees;
 
 /**
  * Created by os on 8/25/17.
@@ -32,13 +33,16 @@ import static java.lang.Math.floor;
 class TutorialMenu extends GVRSceneObject {
     private String BUTTON_TYPE;
     private final String BUTTON_TYPE_ITEM = "tutItem";
-    private final int BUTTON_COLOR_TXT = Color.argb(255,255,250,240);
+    static final int BUTTON_COLOR_TXT = Color.argb(255,255,250,240);
     private final int ITEMS_PER_COLUMN = 3;
     private final float ITEMS_PAD_COLUMN = 0.5f;
+    private final String DEFAULT_MENU_TEXT = "This menu allows you select one from existing tutorials.";
     private final int ITEMS_PER_ROW = 3;
     private final float ITEMS_PAD_ROW = 0.5f;
     private final float[] ITEM_SIZE = new float[]{1.5f,1f};
-    private final int EMPTY_ITEM_COLOR =  Color.argb(255,70,60,50);
+    static final int EMPTY_ITEM_COLOR =  Color.argb(255,35,35,25);
+    private final String[] detailsText= {"Name","Course","Author","Price","Size","Tags"};
+//    private final int EMPTY_ITEM_COLOR =  Color.argb(255,135,135,125);
     private final float FOTTER_HEIGHT = 0.3f;
 
 
@@ -49,7 +53,7 @@ class TutorialMenu extends GVRSceneObject {
         int curPage = 1;
         int totalPages = 1;
         GVRSceneObject main;
-
+        int selectedTutorialNumber = -1;
 
         int itemsPerPage = ITEMS_PER_COLUMN*ITEMS_PER_ROW;
         TutorialItem[] tutorialItems = new TutorialItem[itemsPerPage];
@@ -62,8 +66,10 @@ class TutorialMenu extends GVRSceneObject {
             Log.d(TAG,"start menu");
             root = new GVRSceneObject(gContext);
             root.getTransform().setPosition(0,0,-5);
-
+            createHeader();
             createFooter();
+            createLeftPanel();
+            createRightPanel();
             loadItemsLocal();
             createEmptyItems();
             showItems();
@@ -73,14 +79,15 @@ class TutorialMenu extends GVRSceneObject {
 
         private void showItems(){
 //            Log.d(TAG,"start show items for current page "+curPage);
+            hideItemDetails();
             totalPages = tutorialsArray.length()/itemsPerPage+1;
             for(int j=0, i=(curPage-1)*itemsPerPage;j<itemsPerPage;i++,j++){
                 tutorialItems[j].removeItem();
                 if(i<tutorialsArray.length()){
-                    try{ JSONObject curItem = tutorialsArray.getJSONObject(i);
+                    try{JSONObject curItem = tutorialsArray.getJSONObject(i);
                         tutorialItems[j].addItem(curItem);
-                    }catch (Exception e){Log.d(TAG," can not parse json object "+i+" menu="+j);}
-                    }}
+                    }catch (Exception e){Log.d(TAG,"Tutorial menu. Can not parse json object "+i+" menu="+j);}
+                }}
             updateLabel("pagesList",String.valueOf(curPage)+"/"+String.valueOf(totalPages));
             }
 
@@ -97,15 +104,15 @@ class TutorialMenu extends GVRSceneObject {
             for(int i=0; i<20;i++){
                 String jStr=
                         "{\"_id\":\"AAAA"+i+"\""
-                                +",\"name\":\"Tutorial "+i+"\""
+                                +",\"Name\":\"Tutorial "+i+"\""
                                 +",\"backColor\":\"#222222\""
-                                +",\"fontSize\":\"30\""
+                                +",\"fontSze\":\"30\""
                                 +",\"fontColor\":\"#FFFFFF\""
-                                +",\"author\":\"Oleg Skuibida\""
-                                +",\"tags\":[\"Common\",\" Cooking\"]"
-                                +",\"course\":\"Common\""
-                                +",\"price\":\"Free\""
-                                +",\"size\":\"10 MB\""
+                                +",\"Author\":\"Oleg Skuibida\""
+                                +",\"Tags\":[\"Common\",\" Cooking\",\" Amateur\",\" Home\"]"
+                                +",\"Course\":\"Common\""
+                                +",\"Price\":\"Free\""
+                                +",\"Size\":\"10 MB\""
                                 +"}";
                 try {JSONObject item = new JSONObject(jStr); tutorialsArray.put(item);
                 }catch (Exception e){ Log.d(TAG,"Error parse json");
@@ -139,7 +146,16 @@ class TutorialMenu extends GVRSceneObject {
             }
 
         private void createHeader(){
-
+            float sizeX = ITEMS_PER_ROW*(ITEM_SIZE[0]+ITEMS_PAD_ROW)-ITEM_SIZE[0];
+            if (sizeX<3){sizeX = 3;}
+            float locY =  ITEMS_PER_COLUMN*(ITEM_SIZE[1]+ITEMS_PAD_COLUMN)/2+ITEMS_PAD_COLUMN;
+            float size = FOTTER_HEIGHT*1.2f;
+            // Create the Header
+            GVRSceneObject item = new GVRSceneObject(gContext);
+            item.getTransform().setPosition(0,locY,0);
+            item.setName("Header");
+            createLabel(item,false,"HeaderLabel", "Tutorial List Menu",sizeX,size,0,0);
+            root.addChildObject(item);
         }
 
         void getNextPage(boolean next){
@@ -156,16 +172,103 @@ class TutorialMenu extends GVRSceneObject {
         void onTouchEvent(String[] tag){
 //            Log.d(TAG,"click on Tutorial id"+tag[2]+" in position "+tag[1]);
             switch (tag[1]) {
-                case "prev": getNextPage(false);  break;
-                case "next": getNextPage(true);  break;
+                case "foot_prev": getNextPage(false);  break;
+                case "foot_next": getNextPage(true);  break;
+                case "tutorials_all": filterTutorials("all");  break;
+                case "tutorials_saved": filterTutorials("saved");  break;
+                case "tutorials_new": filterTutorials("new");  break;
                 case BUTTON_TYPE_ITEM: showItemDetails(tag);
                     break;
                 default: break;
             }
         }
 
+        private void filterTutorials(String filter){
+            Log.d(TAG,"Start filter tutorials "+filter);
+
+        }
+
         private void showItemDetails(String[] tag){
+            selectedTutorialNumber = Integer.parseInt(tag[2]);
             Log.d(TAG,"click on Tutorial id "+tag[3]+" in position "+tag[2]);
+            JSONObject jObj = tutorialItems[selectedTutorialNumber].jsonObject;
+            String txt= "";
+            String tags="No data\n";
+            try{
+                JSONArray arr =  jObj.getJSONArray("Tags");
+                for(int i=0,k=0; i<arr.length();i++,k++){
+                    if(i>0){tags=tags.concat(",");}
+                    tags=tags.concat(arr.getString(i));
+                }tags=tags.concat("\n");
+            }catch (Exception e){Log.d(TAG,"Can not extract tags from Tutorial json "+tag[3]);}
+            for(int i=0;i<detailsText.length;i++){
+                    String str = "No data\n";
+                    if(detailsText[i].equals("Tags")){
+                        txt = txt.concat(tags);
+                    }else{
+                        try{ str = detailsText[i]+": "+jObj.getString(detailsText[i])+"\n";
+                        }catch (Exception e){Log.d(TAG,"Can not extract "+detailsText[i]+" from Tutorial json "+tag[3]);}
+                        txt = txt.concat(str);
+                    }}
+            GVRTextViewSceneObject item = (GVRTextViewSceneObject) root.getSceneObjectByName("RightPanelText");
+            item.setTextSize(4);
+            item.setText(txt);
+            GVRSceneObject btn = root.getSceneObjectByName("lp_action"); if(!btn.isEnabled()){btn.setEnable(true);}
+        }
+
+        private void hideItemDetails(){
+            selectedTutorialNumber = -1;
+            GVRTextViewSceneObject item = (GVRTextViewSceneObject) root.getSceneObjectByName("RightPanelText");
+            item.setTextSize(4);
+            item.setText(DEFAULT_MENU_TEXT);
+            GVRSceneObject btn = root.getSceneObjectByName("lp_action"); if(btn.isEnabled()){btn.setEnable(false);}
+        }
+
+        private void createLeftPanel(){
+            float width = ITEM_SIZE[0]*1.2f;
+            float sizeY = FOTTER_HEIGHT;
+            float locX = - ITEMS_PER_ROW*(ITEM_SIZE[0]+ITEMS_PAD_ROW)/2 - ITEMS_PAD_ROW/2;
+            GVRSceneObject item = new GVRSceneObject(gContext);
+            item.getTransform().setPosition(locX,0,0);
+            float angle = (float) toDegrees(atan(-locX/5));
+            item.getTransform().rotateByAxis(angle,0,1,0);
+            item.setName("LeftPanel");
+            float locstepY = width*0.4f;
+            float locStartY = locstepY*3f;
+            createLabel(item,true,"tutorials_all", "All Tutorials", width,sizeY,-width/2,locStartY);
+            locStartY=locStartY-locstepY;
+            createLabel(item,true,"tutorials_saved", "Installed", width,sizeY,-width/2,locStartY);
+            locStartY=locStartY-locstepY;
+            createLabel(item,true,"tutorials_new", "Not installed", width,sizeY,-width/2,locStartY);
+
+        root.addChildObject(item);
+    }
+
+        private void createRightPanel(){
+            float width = ITEM_SIZE[0]*1.5f;
+            float locX = ITEMS_PER_ROW*(ITEM_SIZE[0]+ITEMS_PAD_ROW)/2+ITEMS_PAD_ROW/2;
+            float height = (ITEMS_PER_COLUMN*(ITEM_SIZE[1]+ITEMS_PAD_COLUMN)-ITEMS_PAD_COLUMN)*0.5f;
+            GVRSceneObject item = new GVRSceneObject(gContext);
+            item.getTransform().setPosition(locX,0,0);
+            float angle = (float) toDegrees(atan(-locX/5));
+            item.getTransform().rotateByAxis(angle,0,1,0);
+            item.setName("RightPanel");
+            GVRSceneObject itemBack = new GVRSceneObject(gContext,width,height,new GVRBitmapTexture(gContext, createEmptyTexture(10,10)));
+            itemBack.getTransform().setPosition(width/2,height*0.25f,-0.01f);
+            item.addChildObject(itemBack);
+            float textPad = width*0.2f;
+            GVRTextViewSceneObject child = new GVRTextViewSceneObject(gContext,width-textPad,height*0.6f,DEFAULT_MENU_TEXT);
+            child.getTransform().setPosition(width/2,height*0.25f,0);
+            child.setName("RightPanelText");
+            child.setBackgroundColor(EMPTY_ITEM_COLOR);
+            child.setTextSize(6);
+//            child.getGravity();
+            child.setTextColor(BUTTON_COLOR_TXT);
+            item.addChildObject(child);
+            float size = FOTTER_HEIGHT*1.1f;
+            GVRSceneObject btn = createLabel(item,true,"lp_action", "Install", width/2,size,width/2,-height*0.5f);
+            btn.setEnable(false);
+            root.addChildObject(item);
         }
 
         private void createFooter(){
@@ -177,9 +280,9 @@ class TutorialMenu extends GVRSceneObject {
             GVRSceneObject item = new GVRSceneObject(gContext,sizeX,FOTTER_HEIGHT,new GVRBitmapTexture(gContext, createEmptyTexture(sizeX,FOTTER_HEIGHT)));
             item.getTransform().setPosition(0,locY,0);
             item.setName("Footer");
-            float size = FOTTER_HEIGHT;
-            createLabel(item,true,"prev", "<", size,size,(-sizeX+size)/2,0);
-            createLabel(item,true,"next", ">", size,size,(sizeX-size)/2,0);
+            float size = FOTTER_HEIGHT*1.1f;
+            createLabel(item,true,"foot_prev", "<", size,size,(-sizeX+size)/2,0);
+            createLabel(item,true,"foot_next", ">", size,size,(sizeX-size)/2,0);
             createLabel(item,false,"pagesList",  Integer.toString(curPage)+"/"+Integer.toString(totalPages),0,size*0.9f,0,0);
             root.addChildObject(item);
         }
@@ -190,7 +293,7 @@ class TutorialMenu extends GVRSceneObject {
             item.getRenderData().getMaterial().setMainTexture(texture);
         }
 
-        private void createLabel(GVRSceneObject root, boolean isButton, String name, String txt, float width, float height, float locx, float locy){
+        private GVRSceneObject createLabel(GVRSceneObject root, boolean isButton, String name, String txt, float width, float height, float locx, float locy){
             Bitmap bitmap = createLabelTexture(width,height,txt);
             if(width==0){width = bitmap.getWidth()/100;}
             GVRSceneObject item = new GVRSceneObject(gContext,width,height,new GVRBitmapTexture(gContext, bitmap));
@@ -198,6 +301,7 @@ class TutorialMenu extends GVRSceneObject {
             item.getTransform().setPosition(locx,locy,0.01f);
             if (isButton){item.attachComponent(new GVRSphereCollider(gContext));}
             root.addChildObject(item);
+            return item;
         }
 
         private Bitmap createEmptyTexture(float sizeWidth, float sizeHeight){
@@ -211,13 +315,13 @@ class TutorialMenu extends GVRSceneObject {
             }
 
         private Bitmap createLabelTexture(float width, float height, String str){
-            Rect r = new Rect(); int w=10, h=(int) (height*100);
+            Rect r = new Rect(); int w=10, h=(int) (height*100), fontSize = (int) (height*60);
+//            Log.d(TAG,"label texture "+"height="+height+" fontSize="+fontSize);
             if(width!=0){ w = (int) (width*100);
             }else{
                 Paint testPaint = new Paint();
                 testPaint.setTextSize(h);
 //                testPaint.setTextAlign(Paint.Align.CENTER);
-//                Log.d(TAG,"paint "+str+"width="+testPaint.measureText(str));
                 w = (int) (testPaint.measureText(str)*10); // round
             }
             Bitmap bitmapAlpha = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
@@ -227,7 +331,7 @@ class TutorialMenu extends GVRSceneObject {
             paint.setStyle(Paint.Style.FILL);
             c.drawColor(EMPTY_ITEM_COLOR);
             paint.setColor(BUTTON_COLOR_TXT);
-            paint.setTextSize(h);
+            paint.setTextSize(fontSize);
             paint.getTextBounds(str, 0, str.length(), r);
             float x = w/2f - r.width() / 2f - r.left;
             float y = h/2f - r.height() / 2f - r.top;
