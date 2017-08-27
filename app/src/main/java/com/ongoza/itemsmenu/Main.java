@@ -35,7 +35,7 @@ public class Main extends GVRMain {
             case MotionEvent.ACTION_DOWN:
                 switch (curScene) {
                     case "mainScene":
-                        Log.w(TAG, "select event obj=" + String.valueOf(event.getAction()) + "=mpt=" + String.valueOf(MotionEvent.ACTION_MASK));
+//                        Log.w(TAG, "select event obj=" + String.valueOf(event.getAction()) + "=mpt=" + String.valueOf(MotionEvent.ACTION_MASK));
                         mainScene.onTouchEvent();
                         break;
                     default: break;
