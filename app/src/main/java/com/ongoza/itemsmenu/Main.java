@@ -17,10 +17,10 @@ import org.gearvrf.utility.Log;
  */
 
 public class Main extends GVRMain {
-    private static final String TAG = MainActivity.getTAG();;
+    private static final String TAG = MainActivity.getTAG();
     public static Context mContext;
     public GVRContext gContext;
-    private MainScene mainScene;
+    static MainScene mainScene;
     private String curScene = "mainScene";
 
     public Main (MainActivity activity) {  mContext = activity; }
