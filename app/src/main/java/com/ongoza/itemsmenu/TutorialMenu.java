@@ -6,12 +6,11 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.util.Log;
-import android.util.Size;
+
+import com.ongoza.itemsmenu.Utils.KeyboardMain;
 
 import org.gearvrf.GVRBitmapTexture;
-import org.gearvrf.GVRCollider;
 import org.gearvrf.GVRContext;
-import org.gearvrf.GVRScene;
 import org.gearvrf.GVRSceneObject;
 import org.gearvrf.GVRSphereCollider;
 import org.gearvrf.GVRTexture;
@@ -19,11 +18,10 @@ import org.gearvrf.scene_objects.GVRTextViewSceneObject;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.util.Arrays;
-import java.util.HashMap;
 
 import static java.lang.Math.atan;
-import static java.lang.Math.floor;
 import static java.lang.Math.toDegrees;
 
 /**
@@ -57,13 +55,19 @@ class TutorialMenu extends GVRSceneObject {
         int itemsPerPage = ITEMS_PER_COLUMN*ITEMS_PER_ROW;
         TutorialItem[] tutorialItems = new TutorialItem[itemsPerPage];
 
+
+
+    public interface DownloadListener {
+        void onSuccess();
+        void onFailure();
+    }
         public  TutorialMenu(GVRContext gContext, String btnType) {
             super(gContext);
             this.gContext = gContext;
             this.tMenu = this;
             BUTTON_TYPE = btnType;
             Log.d(TAG,"start menu");
-            connectionManager = new ConnectionManager(this);
+            connectionManager = new ConnectionManager(this,gContext);
             root = new GVRSceneObject(gContext);
             root.getTransform().setPosition(0,0,-6.5f);
             createHeader();
@@ -75,8 +79,29 @@ class TutorialMenu extends GVRSceneObject {
             createEmptyItems();
             showItems();
 
-
         }
+
+        private void checkLocalDir(){
+            Log.d(TAG,"check local files=");
+            try{
+                File mydir = gContext.getContext().getFilesDir();
+                File listFile[] = mydir.listFiles();
+                Log.d(TAG,"check local files="+Arrays.toString(listFile));
+            if (listFile != null && listFile.length > 0) {
+                for (File aListFile : listFile) {
+                    Log.d(TAG,"file="+aListFile.getName());
+                }
+            }
+
+                File file = gContext.getContext().getFileStreamPath("test1.mp4");
+                if (file.exists()){
+                    Log.d(TAG,"file test4 exist!!");
+                }
+//
+            }catch(Exception e){
+                    Log.d(TAG, "Can not connected to  server with video "+ Arrays.toString(e.getStackTrace()));
+                }
+            }
 
         private void showItems(){
 //            Log.d(TAG,"start show items for current page "+curPage);
@@ -97,6 +122,8 @@ class TutorialMenu extends GVRSceneObject {
             this.mainRoot = main;
             main.addChildObject(root);
 //            updateLabel("pagesList","Hello");
+            //connectionManager.startDownload("takeVideoTutorials","#AAA","http://192.168.1.30/2/test1.mp4");
+            checkLocalDir();
         }
 
         public void hide(){ mainRoot.removeChildObject(root); }
@@ -107,6 +134,8 @@ class TutorialMenu extends GVRSceneObject {
         // _more?id=1&amp;batch_size=1'
         // find?batch_size=1'
         String data = "?batch_size="+Integer.toString(itemsPerPage);
+
+        //final ResultListener listener
         connectionManager.startDownload("takeAllTutorials","AllTutorials", data);
     }
 

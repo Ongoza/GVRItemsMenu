@@ -32,6 +32,7 @@ public class Main extends GVRMain {
         mainScene.show();
     }
 
+
     public void onTouchEvent(MotionEvent event) {
 //        Log.d(TAG, "select event obj=" + String.valueOf(event.getAction()) + "=mpt=" + String.valueOf(MotionEvent.ACTION_MASK));
 //        Log.d(TAG, "main="+String.valueOf(event. .getAction() & MotionEvent.ACTION_MASK)+" down="+String.valueOf(MotionEvent.ACTION_DOWN));

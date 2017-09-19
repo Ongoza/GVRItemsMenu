@@ -1,5 +1,8 @@
 package com.ongoza.itemsmenu;
 
+import com.ongoza.itemsmenu.Utils.KeyboardMain;
+import com.ongoza.itemsmenu.Utils.PickHandler;
+
 import org.gearvrf.GVRAndroidResource;
 import org.gearvrf.GVRContext;
 import org.gearvrf.GVRPicker;
@@ -10,12 +13,14 @@ import org.gearvrf.utility.Log;
 public class MainScene extends GVRScene {
     private static final String TAG = MainActivity.getTAG();
     private static final String BUTTON_TUTORIAL_TYPE = "tListMenu";
+    public static final String KEY_TYPE = "keyButton";
 
     private GVRContext gContext;
     private GVRSceneObject root;
     private PickHandler mPickHandler;
     private GVRPicker mPicker;
     TutorialMenu tutorialMenu;
+    KeyboardMain keyboardMain;
 
 
     public MainScene(GVRContext gContext) {
@@ -41,9 +46,11 @@ public class MainScene extends GVRScene {
     public void show(){
         Log.d(TAG,"show main scena");
         getGVRContext().setMainScene(this);
-        tutorialMenu = new TutorialMenu(gContext,BUTTON_TUTORIAL_TYPE);
-
-        tutorialMenu.show(root);
+//        tutorialMenu = new TutorialMenu(gContext,BUTTON_TUTORIAL_TYPE);
+//
+//        tutorialMenu.show(root);
+        keyboardMain =  new KeyboardMain(gContext);
+        root.addChildObject(keyboardMain.getRoot());
 //        addSceneObject(menu);
     }
     public void onTouchEvent() {
@@ -55,6 +62,7 @@ public class MainScene extends GVRScene {
 //             Log.d(TAG,"main scene touch obj = "+arr[0]);
             switch (arr[0]) {
                 case BUTTON_TUTORIAL_TYPE: tutorialMenu.onTouchEvent(arr);  break;
+                case KEY_TYPE: keyboardMain.onTouchEvent(arr);  break;
                 default: break;
             }
         }

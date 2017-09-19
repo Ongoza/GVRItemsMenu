@@ -1,8 +1,10 @@
 // todo сделать только один активный элемент - сейчас список и при пересечении объектов они все выделяются ;(
 
-package com.ongoza.itemsmenu;
+package com.ongoza.itemsmenu.Utils;
 
 import android.graphics.Color;
+
+import com.ongoza.itemsmenu.MainActivity;
 
 import org.gearvrf.GVRPicker;
 import org.gearvrf.GVRSceneObject;
