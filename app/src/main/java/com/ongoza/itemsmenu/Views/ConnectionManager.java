@@ -1,8 +1,10 @@
-package com.ongoza.itemsmenu;
+package com.ongoza.itemsmenu.Views;
 
 import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
+
+import com.ongoza.itemsmenu.MainActivity;
 
 import org.gearvrf.GVRContext;
 import org.json.JSONArray;
@@ -15,7 +17,6 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 /**
@@ -40,6 +41,7 @@ public class ConnectionManager {
         this.tutorialMenu = tutorialMenu;
         this.gContext = gContext;
     }
+
     private boolean startDownloadItems(String name, String cmd, String data){
         boolean result = false;
         ConnectionString newConnection = new ConnectionString();

@@ -1,4 +1,4 @@
-package com.ongoza.itemsmenu;
+package com.ongoza.itemsmenu.Views;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -7,7 +7,7 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.util.Log;
 
-import com.ongoza.itemsmenu.Utils.KeyboardMain;
+import com.ongoza.itemsmenu.MainActivity;
 
 import org.gearvrf.GVRBitmapTexture;
 import org.gearvrf.GVRContext;
@@ -28,7 +28,7 @@ import static java.lang.Math.toDegrees;
  * Created by os on 8/25/17.
  */
 
-class TutorialMenu extends GVRSceneObject {
+public class TutorialMenu extends GVRSceneObject {
     private String BUTTON_TYPE;
     private final String BUTTON_TYPE_ITEM = "tutItem";
     static final int BUTTON_COLOR_TXT = Color.argb(255,255,250,240);
@@ -216,7 +216,7 @@ class TutorialMenu extends GVRSceneObject {
         }
     }
 
-        void onTouchEvent(String[] tag){
+        public void onTouchEvent(String[] tag){
 //            Log.d(TAG,"click on Tutorial id"+tag[2]+" in position "+tag[1]);
             switch (tag[1]) {
                 case "foot_prev": getNextPage(false);  break;

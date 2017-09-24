@@ -67,10 +67,12 @@ task copyOculusSignature(type: Copy) {
 preBuild {}.dependsOn copyOculusSignature
 
 dependencies {
-    compile 'org.gearvrf:framework:3.2'
-    compile 'org.gearvrf:backend_oculus:3.2'
+    compile 'com.google.code.gson:gson:2.7'
+    compile 'org.gearvrf:framework:3.3.1-SNAPSHOT'
+    compile 'org.gearvrf:backend_oculus:3.3.1-SNAPSHOT'
     compile 'org.joml:joml-android:1.9.1-SNAPSHOT'
-    compile 'org.gearvrf:backend_daydream:3.2'
+    compile 'org.gearvrf:backend_daydream:3.3.1-SNAPSHOT'
     compile 'com.google.vr:sdk-base:1.80.0'
+    compile "com.google.vr:sdk-controller:1.80.0"
 
 }

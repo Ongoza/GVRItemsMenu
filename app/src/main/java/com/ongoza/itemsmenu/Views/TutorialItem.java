@@ -1,4 +1,4 @@
-package com.ongoza.itemsmenu;
+package com.ongoza.itemsmenu.Views;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -7,15 +7,14 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.util.Log;
 
+import com.ongoza.itemsmenu.MainActivity;
+
 import org.gearvrf.GVRBitmapTexture;
 import org.gearvrf.GVRContext;
 import org.gearvrf.GVRSceneObject;
 import org.gearvrf.GVRSphereCollider;
 import org.gearvrf.GVRTexture;
 import org.json.JSONObject;
-
-import java.util.HashMap;
-import java.util.Iterator;
 
 /**
  * Created by os on 8/25/17.
