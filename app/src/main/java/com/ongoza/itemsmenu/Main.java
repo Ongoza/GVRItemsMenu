@@ -1,6 +1,7 @@
-//todo add connection Manager for downloading data in different threads
-//todo save local configuration and data
-//todo authenticaton from oculus
+//todo show Alert
+//todo processing server answers
+//todo load data with password
+//
 
 package com.ongoza.itemsmenu;
 

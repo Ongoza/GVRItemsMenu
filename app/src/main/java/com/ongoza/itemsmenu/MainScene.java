@@ -1,9 +1,6 @@
 package com.ongoza.itemsmenu;
 
-import android.content.Context;
-import android.content.SharedPreferences;
-
-import com.ongoza.itemsmenu.Utils.KeyboardMain;
+import com.ongoza.itemsmenu.Utils.LoginForm;
 import com.ongoza.itemsmenu.Utils.PickHandler;
 import com.ongoza.itemsmenu.Views.TutorialMenu;
 
@@ -24,7 +21,7 @@ public class MainScene extends GVRScene {
     private PickHandler mPickHandler;
     private GVRPicker mPicker;
     TutorialMenu tutorialMenu;
-    KeyboardMain keyboardMain;
+    LoginForm keyboardMain;
 
 
     public MainScene(GVRContext gContext) {
@@ -50,32 +47,12 @@ public class MainScene extends GVRScene {
     public void show(){
         Log.d(TAG,"show main scena");
         getGVRContext().setMainScene(this);
-        loginToServer();
         tutorialMenu = new TutorialMenu(gContext,BUTTON_TUTORIAL_TYPE);
-//
-//        tutorialMenu.show(root);
-//        GVRCubeSceneObject cube = new GVRCubeSceneObject(gContext, true, new GVRMaterial(gContext));
-//        GVRKeyboardSceneObject.Builder keyboard = new GVRKeyboardSceneObject.Builder();
-//        keyboard.build(gContext,);
-//        GVRSceneObject keyboard = new GVRKeyboardSceneObject(gContext);
-//        addSceneObject(menu);
+        keyboardMain =  new LoginForm(gContext);
+        tutorialMenu.show(root,keyboardMain);
     }
 
-    private void loginToServer(){
-        SharedPreferences userdetails = gContext.getContext().getSharedPreferences("userDetails", Context.MODE_PRIVATE);
-        String uname = userdetails.getString("login", "");
-        String upass = userdetails.getString("pswd", "");
-        if(!uname.equals("")&&!upass.equals("")){
-            // check login&&pass
-            Log.d(TAG,"login&pswd="+uname+" "+upass);
-            // sync tutorial data
-        }else{
-            // login or create account
-            Log.d(TAG,"create login&pswd=");
-            keyboardMain =  new KeyboardMain(gContext);
-            root.addChildObject(keyboardMain.getRoot());
-        }
-    }
+
 
     public void onTouchEvent() {
         if (mPickHandler.PickedObject!=null){

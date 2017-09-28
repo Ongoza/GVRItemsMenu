@@ -23,6 +23,7 @@ public class OS_GUI {
     GVRContext gContext;
     GVRSceneObject root;
 //    GVRSceneObject rootLocal;
+
     public GVRSceneObject createItem(GVRContext gContext,GVRSceneObject root, String type, String key, String name, String txt, float width, float height, float locx, float locy){
        this.gContext=gContext; this.root=root; GVRSceneObject item=new GVRSceneObject(gContext);
         switch (type){
@@ -39,7 +40,7 @@ public class OS_GUI {
 
     private GVRSceneObject createLabel(boolean isButton, String key, String name, String txt, float width, float height, float locx, float locy){
             Bitmap bitmap = createButtonTexure(txt,width,height);
-            Log.d(TAG,"createLabel="+width+" "+txt+" "+height);
+            //Log.d(TAG,"createLabel="+width+" "+txt+" "+height);
             // if(width==0){width = bitmap.getWidth()/100;}
             GVRSceneObject item = new GVRSceneObject(gContext,width,height,new GVRBitmapTexture(gContext, bitmap));
             item.setName(name); String[] tag = {key,name}; item.setTag(tag);
@@ -48,11 +49,12 @@ public class OS_GUI {
             root.addChildObject(item);
             return item;
         }
+
     private Bitmap createButtonTexure(String str, float width, float height){
-        Log.d(TAG,"Pie 5");
+//        Log.d(TAG,"createButtonTexure");
         Rect r = new Rect();
         int w = (int) (width*100), h = (int) (height*100), fontSize = (int) (height*60);
-        Log.d(TAG,"Pie ="+w+" "+h+" "+fontSize);
+//        Log.d(TAG,"createButtonTexure ="+w+" "+h+" "+fontSize);
         Bitmap bitmapAlpha = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(bitmapAlpha);
         Paint paint = new Paint();
@@ -74,8 +76,9 @@ public class OS_GUI {
         paint.setStrokeWidth(2F);
         paint.setTextSize(fontSize);
         paint.getTextBounds(str, 0, str.length(), r);
-        float x = w/2f - r.width() / 2f - r.left;
-        c.drawText(str,x,h-10,paint);
+        float x = (w - r.width()) / 2f - r.left;
+        float y = (h + r.height())/ 2f -r.bottom;
+        c.drawText(str,x,y,paint);
 //        c.drawColor(Color.argb(100,150,150,150));
 //        c.drawColor(Color.argb(100,46,191,248));
         paint.setAlpha(255);

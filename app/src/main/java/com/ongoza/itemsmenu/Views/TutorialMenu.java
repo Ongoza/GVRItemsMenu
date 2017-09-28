@@ -1,5 +1,7 @@
 package com.ongoza.itemsmenu.Views;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -8,6 +10,7 @@ import android.graphics.Rect;
 import android.util.Log;
 
 import com.ongoza.itemsmenu.MainActivity;
+import com.ongoza.itemsmenu.Utils.LoginForm;
 
 import org.gearvrf.GVRBitmapTexture;
 import org.gearvrf.GVRContext;
@@ -42,26 +45,27 @@ public class TutorialMenu extends GVRSceneObject {
     private final String[] detailsText= {"Name","Course","Author","Price","Size","Tags"};
 //    private final int EMPTY_ITEM_COLOR =  Color.argb(255,135,135,125);
     private final float FOTTER_HEIGHT = 0.3f;
-        GVRContext gContext;
-        GVRSceneObject root;
-        private static final String TAG = MainActivity.getTAG();
-        JSONArray tutorialsArray = new JSONArray();
-        int curPage = 1;
-        int totalPages = 1;
+    GVRContext gContext;
+    GVRSceneObject root;
+    private static final String TAG = MainActivity.getTAG();
+    JSONArray tutorialsArray = new JSONArray();
+    int curPage = 1;
+    int totalPages = 1;
     private ConnectionManager connectionManager;
-        GVRSceneObject mainRoot;
-        TutorialMenu tMenu;
-        int selectedTutorialNumber = -1;
-        int itemsPerPage = ITEMS_PER_COLUMN*ITEMS_PER_ROW;
-        TutorialItem[] tutorialItems = new TutorialItem[itemsPerPage];
-
-
+    GVRSceneObject mainRoot;
+    TutorialMenu tMenu;
+    int selectedTutorialNumber = -1;
+    int itemsPerPage = ITEMS_PER_COLUMN*ITEMS_PER_ROW;
+    TutorialItem[] tutorialItems = new TutorialItem[itemsPerPage];
+    LoginForm loginForm;
+    String userLogin, userPass;
 
     public interface DownloadListener {
         void onSuccess();
         void onFailure();
     }
-        public  TutorialMenu(GVRContext gContext, String btnType) {
+
+    public  TutorialMenu(GVRContext gContext, String btnType) {
             super(gContext);
             this.gContext = gContext;
             this.tMenu = this;
@@ -70,18 +74,9 @@ public class TutorialMenu extends GVRSceneObject {
             connectionManager = new ConnectionManager(this,gContext);
             root = new GVRSceneObject(gContext);
             root.getTransform().setPosition(0,0,-6.5f);
-            createHeader();
-            createFooter();
-            createLeftPanel();
-            createRightPanel();
-//            loadItemsLocal();
-            loadItemsServer();
-            createEmptyItems();
-            showItems();
-
         }
 
-        private void checkLocalDir(){
+    private void checkLocalDir(){
             Log.d(TAG,"check local files=");
             try{
                 File mydir = gContext.getContext().getFilesDir();
@@ -103,7 +98,7 @@ public class TutorialMenu extends GVRSceneObject {
                 }
             }
 
-        private void showItems(){
+    private void showItems(){
 //            Log.d(TAG,"start show items for current page "+curPage);
             hideItemDetails();
             totalPages = tutorialsArray.length()/itemsPerPage+1;
@@ -117,16 +112,20 @@ public class TutorialMenu extends GVRSceneObject {
             updateLabel("pagesList",String.valueOf(curPage)+"/"+String.valueOf(totalPages));
             }
 
-        public void show(GVRSceneObject main){
-            Log.d(TAG,"start show tutorial menu ");
-            this.mainRoot = main;
-            main.addChildObject(root);
-//            updateLabel("pagesList","Hello");
-            //connectionManager.startDownload("takeVideoTutorials","#AAA","http://192.168.1.30/2/test1.mp4");
-            checkLocalDir();
+    public void show(GVRSceneObject main, LoginForm loginForm){
+        Log.d(TAG,"start show tutorial menu ");
+        this.mainRoot = main;
+        this.loginForm = loginForm;
+        main.addChildObject(root);
+        SharedPreferences userdetails = gContext.getContext().getSharedPreferences("com.ongoza.VRTE4.userDetails", Context.MODE_PRIVATE);
+        userLogin = userdetails.getString("login", "");
+        userPass = userdetails.getString("pswd", "");
+        if(!userLogin.equals("")&&!userPass.equals("")){loginToServer();
+        }else{// no saved data: login or create account
+            loginForm.show(root,connectionManager);}
         }
 
-        public void hide(){ mainRoot.removeChildObject(root); }
+    public void hide(){ mainRoot.removeChildObject(root); }
 
     private void loadItemsServer(){
         //String allData = loadItemsLocal();
@@ -141,6 +140,51 @@ public class TutorialMenu extends GVRSceneObject {
 
     public void updateTutorials(JSONArray jArr){
        tutorialsArray = jArr; showItems();
+    }
+
+    public void loginToServer(){
+            // check login&&pass
+            Log.d(TAG,"login&pswd="+userLogin+" "+userPass);
+            String data='?'+userLogin+'&'+userPass;
+        String type = "login";
+            //final ResultListener listener
+            boolean sended= connectionManager.startSendCmdToServer(type,data);
+            Log.d(TAG,"Result send to server: "+sended);
+            //checkLogin(uname,upass);
+            // sync tutorial data
+        if(sended){
+            root.removeChildObject(loginForm.getRoot());
+            //TODO show message: wait for the server answer
+        }else{
+            //TODO show message: check connection to Inet
+        }
+    }
+
+    private void startShowMainMenu(){
+        createHeader();
+        createFooter();
+        createLeftPanel();
+        createRightPanel();
+//            loadItemsLocal();
+        loadItemsServer();
+        createEmptyItems();
+        showItems();
+    }
+
+    public void resultServerCommand(String cmd, String query,String result){
+        Log.d(TAG, "Server cmd "+cmd+query+" Result: "+result);
+    }
+
+    public void saveLogin(String login, String pswd){
+        SharedPreferences local_data = gContext.getContext().getSharedPreferences("com.ongoza.VRTE4.userDetails",Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = local_data.edit();
+        editor.putString("login",login);
+        editor.putString("pswd",pswd);
+        editor.apply();
+    }
+
+    public void showMainMenu(){
+        checkLocalDir();
     }
 
     private String loadItemsLocal(){
@@ -168,7 +212,7 @@ public class TutorialMenu extends GVRSceneObject {
         return allData;
         }
 
-        private void createEmptyItems(){
+    private void createEmptyItems(){
             Bitmap bitmapTextureEmpty = createEmptyTexture(ITEM_SIZE[0],ITEM_SIZE[1]);
             float startX, startY,stepX=ITEMS_PAD_ROW+ITEM_SIZE[0], stepY=ITEMS_PAD_COLUMN+ITEM_SIZE[1];
             float x= (float) ITEMS_PER_ROW ; float y= (float) ITEMS_PER_COLUMN;
@@ -192,7 +236,7 @@ public class TutorialMenu extends GVRSceneObject {
                 }
             }
 
-        private void createHeader(){
+    private void createHeader(){
             float sizeX = ITEMS_PER_ROW*(ITEM_SIZE[0]+ITEMS_PAD_ROW)-ITEM_SIZE[0];
             if (sizeX<3){sizeX = 3;}
             float locY =  ITEMS_PER_COLUMN*(ITEM_SIZE[1]+ITEMS_PAD_COLUMN)/2+ITEMS_PAD_COLUMN;
@@ -205,7 +249,7 @@ public class TutorialMenu extends GVRSceneObject {
             root.addChildObject(item);
         }
 
-        void getNextPage(boolean next){
+    void getNextPage(boolean next){
         Log.d(TAG,"start change page");
         int nextPage =curPage;
         if(next){if(curPage<totalPages){nextPage++;}
@@ -216,7 +260,7 @@ public class TutorialMenu extends GVRSceneObject {
         }
     }
 
-        public void onTouchEvent(String[] tag){
+    public void onTouchEvent(String[] tag){
 //            Log.d(TAG,"click on Tutorial id"+tag[2]+" in position "+tag[1]);
             switch (tag[1]) {
                 case "foot_prev": getNextPage(false);  break;
@@ -230,12 +274,12 @@ public class TutorialMenu extends GVRSceneObject {
             }
         }
 
-        private void filterTutorials(String filter){
+    private void filterTutorials(String filter){
             Log.d(TAG,"Start filter tutorials "+filter);
 
         }
 
-        private void showItemDetails(String[] tag){
+    private void showItemDetails(String[] tag){
             selectedTutorialNumber = Integer.parseInt(tag[2]);
             Log.d(TAG,"click on Tutorial id "+tag[3]+" in position "+tag[2]);
             JSONObject jObj = tutorialItems[selectedTutorialNumber].jsonObject;
@@ -263,7 +307,7 @@ public class TutorialMenu extends GVRSceneObject {
             GVRSceneObject btn = root.getSceneObjectByName("lp_action"); if(!btn.isEnabled()){btn.setEnable(true);}
         }
 
-        private void hideItemDetails(){
+    private void hideItemDetails(){
             selectedTutorialNumber = -1;
             GVRTextViewSceneObject item = (GVRTextViewSceneObject) root.getSceneObjectByName("RightPanelText");
             item.setTextSize(4);
@@ -271,7 +315,7 @@ public class TutorialMenu extends GVRSceneObject {
             GVRSceneObject btn = root.getSceneObjectByName("lp_action"); if(btn.isEnabled()){btn.setEnable(false);}
         }
 
-        private void createLeftPanel(){
+    private void createLeftPanel(){
             float width = ITEM_SIZE[0]*1.2f;
             float sizeY = FOTTER_HEIGHT;
             float locX = - ITEMS_PER_ROW*(ITEM_SIZE[0]+ITEMS_PAD_ROW)/2 - ITEMS_PAD_ROW;
@@ -291,7 +335,7 @@ public class TutorialMenu extends GVRSceneObject {
         root.addChildObject(item);
     }
 
-        private void createRightPanel(){
+    private void createRightPanel(){
             float width = ITEM_SIZE[0]*1.5f;
             float locX = ITEMS_PER_ROW*(ITEM_SIZE[0]+ITEMS_PAD_ROW)/2+ITEMS_PAD_ROW;
             float height = (ITEMS_PER_COLUMN*(ITEM_SIZE[1]+ITEMS_PAD_COLUMN)-ITEMS_PAD_COLUMN)*0.5f;
@@ -318,7 +362,7 @@ public class TutorialMenu extends GVRSceneObject {
             root.addChildObject(item);
         }
 
-        private void createFooter(){
+    private void createFooter(){
             float sizeX = ITEMS_PER_ROW*(ITEM_SIZE[0]+ITEMS_PAD_ROW)-ITEM_SIZE[0];
             // set minimum width for footer
             if (sizeX<3){sizeX = 3;}
@@ -334,13 +378,13 @@ public class TutorialMenu extends GVRSceneObject {
             root.addChildObject(item);
         }
 
-        private void updateLabel(String name, String txt){
+    private void updateLabel(String name, String txt){
             GVRSceneObject item = root.getSceneObjectByName(name);
             GVRTexture texture = new GVRBitmapTexture(gContext, createLabelTexture(0,FOTTER_HEIGHT,txt));
             item.getRenderData().getMaterial().setMainTexture(texture);
         }
 
-        private GVRSceneObject createLabel(GVRSceneObject root, boolean isButton, String name, String txt, float width, float height, float locx, float locy){
+    private GVRSceneObject createLabel(GVRSceneObject root, boolean isButton, String name, String txt, float width, float height, float locx, float locy){
             Bitmap bitmap = createLabelTexture(width,height,txt);
             if(width==0){width = bitmap.getWidth()/100;}
             GVRSceneObject item = new GVRSceneObject(gContext,width,height,new GVRBitmapTexture(gContext, bitmap));
@@ -351,7 +395,7 @@ public class TutorialMenu extends GVRSceneObject {
             return item;
         }
 
-        private Bitmap createEmptyTexture(float sizeWidth, float sizeHeight){
+    private Bitmap createEmptyTexture(float sizeWidth, float sizeHeight){
                 int x = (int) (sizeWidth*300);
                 int y = (int) (sizeHeight*300);
                 int[] colors = new int[x*y];
@@ -361,7 +405,7 @@ public class TutorialMenu extends GVRSceneObject {
                 return bitmapAlpha;
             }
 
-        private Bitmap createLabelTexture(float width, float height, String str){
+    private Bitmap createLabelTexture(float width, float height, String str){
             Rect r = new Rect(); int w=10, h=(int) (height*100), fontSize = (int) (height*60);
 //            Log.d(TAG,"label texture "+"height="+height+" fontSize="+fontSize);
             if(width!=0){ w = (int) (width*100);
@@ -386,7 +430,5 @@ public class TutorialMenu extends GVRSceneObject {
 //            paint.setAlpha(255);
         return bitmapAlpha;
     }
-    }
 
-
-
+}
