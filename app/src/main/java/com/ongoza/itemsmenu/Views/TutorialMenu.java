@@ -10,6 +10,7 @@ import android.graphics.Rect;
 import android.util.Log;
 
 import com.ongoza.itemsmenu.MainActivity;
+import com.ongoza.itemsmenu.Utils.AlertMsg;
 import com.ongoza.itemsmenu.Utils.LoginForm;
 
 import org.gearvrf.GVRBitmapTexture;
@@ -120,9 +121,13 @@ public class TutorialMenu extends GVRSceneObject {
         SharedPreferences userdetails = gContext.getContext().getSharedPreferences("com.ongoza.VRTE4.userDetails", Context.MODE_PRIVATE);
         userLogin = userdetails.getString("login", "");
         userPass = userdetails.getString("pswd", "");
-        if(!userLogin.equals("")&&!userPass.equals("")){loginToServer();
-        }else{// no saved data: login or create account
-            loginForm.show(root,connectionManager);}
+        Log.d(TAG,"saved login "+userLogin+" "+userPass);
+        String msg = "Alert message!\n Start login to server.....\nOk";
+        new AlertMsg(gContext,5000,msg,24);
+//        if(!userLogin.equals("")&&!userPass.equals("")){loginToServer();
+//        }else{// no saved data: login or create account
+     //       loginForm.show(root,connectionManager);
+    //}
         }
 
     public void hide(){ mainRoot.removeChildObject(root); }

@@ -90,6 +90,8 @@ public class OS_GUI {
         item.getRenderData().getMaterial().setMainTexture(new GVRBitmapTexture(gContext,bitmap));
     }
 
+    //public GVRSceneObject showAlert(){   }
+
     }
 
 
