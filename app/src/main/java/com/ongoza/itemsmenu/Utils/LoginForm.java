@@ -57,6 +57,7 @@ public class LoginForm extends GVRSceneObject {
     }
 
     private void startNew(){
+        login="";password=""; inputText=""; registerNew = false;
         root_form = new GVRSceneObject(gContext);
         os_gui.createItem(gContext,root_form, "label","","LoginLabel","Login",1.6f,LABEL_SIZE[1],-3.9f,KEYBOARD_TOP_PAD +3*(KEY_BUTTON_SIZE+KEY_BUTTON_PAD));
         curInput = os_gui.createItem(gContext,root_form, "label","","LoginInput","",LABEL_SIZE[0],LABEL_SIZE[1],0,KEYBOARD_TOP_PAD +3*(KEY_BUTTON_SIZE+KEY_BUTTON_PAD));
@@ -85,7 +86,6 @@ public class LoginForm extends GVRSceneObject {
 //        for (int i = 0; i < list.size(); i++) {
 //            root.removeChildObject(list.get(i));
 //        }
-        login="";password=""; inputText=""; registerNew = false;
         startNew();
     }
 
@@ -112,6 +112,7 @@ public class LoginForm extends GVRSceneObject {
             curInput = os_gui.createItem(gContext,root_form, "label","","PasswordInput","",LABEL_SIZE[0],LABEL_SIZE[1],0,KEYBOARD_TOP_PAD +3*(KEY_BUTTON_SIZE+KEY_BUTTON_PAD));
             os_gui.createItem(gContext,root_form, "label","","PasswordLabel","Password",1.7f,LABEL_SIZE[1],-3.9f,KEYBOARD_TOP_PAD +3*(KEY_BUTTON_SIZE+KEY_BUTTON_PAD));
         }else{
+            Log.d(TAG, "End input data login tr=" +registerNew);
             if(registerNew){
                 if(password.equals("")) {
                     Log.d(TAG, "End input data login=" + login + " password=" + password);
@@ -128,10 +129,8 @@ public class LoginForm extends GVRSceneObject {
                         password = inputText;
                         String query="?l="+login+"&p="+password;
                         boolean sended= connectionManager.startSendCmdToServer("register",query);
-
-                    }else{
-                        //TODO show error message passwords does not match
-                    }
+                        if(!sended){new AlertMsg(gContext,3000,"Attention!\n Can not connect to server.\nPlease check Internet connection.",24);}
+                    }else{new AlertMsg(gContext,3000,"Attention!\n Your new password and confirmation password do not match.",24);}
                 }
             }else {
                 // check login and sync data
@@ -139,6 +138,7 @@ public class LoginForm extends GVRSceneObject {
                 String query="?l="+login+"&p="+password;
                 Log.d(TAG,"Check login="+login+" password="+password);
                 boolean sended= connectionManager.startSendCmdToServer("login",query);
+                if(!sended){new AlertMsg(gContext,3000,"Attention!\n Can not connect to server.\nPlease check Internet connection.",24);}
             }
         }
     }

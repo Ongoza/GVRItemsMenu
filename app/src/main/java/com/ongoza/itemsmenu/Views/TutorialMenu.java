@@ -56,25 +56,27 @@ public class TutorialMenu extends GVRSceneObject {
     GVRSceneObject mainRoot;
     TutorialMenu tMenu;
     int selectedTutorialNumber = -1;
+    int sessionID=0;
     int itemsPerPage = ITEMS_PER_COLUMN*ITEMS_PER_ROW;
     TutorialItem[] tutorialItems = new TutorialItem[itemsPerPage];
     LoginForm loginForm;
     String userLogin, userPass;
 
-    public interface DownloadListener {
-        void onSuccess();
-        void onFailure();
-    }
+   // public interface DownloadListener {
+//        void onSuccess();
+//        void onFailure();
+//    }
 
     public  TutorialMenu(GVRContext gContext, String btnType) {
-            super(gContext);
-            this.gContext = gContext;
-            this.tMenu = this;
-            BUTTON_TYPE = btnType;
-            Log.d(TAG,"start menu");
-            connectionManager = new ConnectionManager(this,gContext);
-            root = new GVRSceneObject(gContext);
-            root.getTransform().setPosition(0,0,-6.5f);
+        super(gContext);
+        this.gContext = gContext;
+        this.tMenu = this;
+        BUTTON_TYPE = btnType;
+        Log.d(TAG,"start menu");
+        connectionManager = new ConnectionManager(this,gContext);
+        root = new GVRSceneObject(gContext);
+        root.setName("root_TutorialMenu");
+        root.getTransform().setPosition(0,0,-6.5f);
         }
 
     private void checkLocalDir(){
@@ -122,13 +124,11 @@ public class TutorialMenu extends GVRSceneObject {
         userLogin = userdetails.getString("login", "");
         userPass = userdetails.getString("pswd", "");
         Log.d(TAG,"saved login "+userLogin+" "+userPass);
-        String msg = "Alert message!\n Start login to server.....\nOk";
-        new AlertMsg(gContext,5000,msg,24);
-//        if(!userLogin.equals("")&&!userPass.equals("")){loginToServer();
-//        }else{// no saved data: login or create account
-     //       loginForm.show(root,connectionManager);
-    //}
+        if(!userLogin.equals("")&&!userPass.equals("")){loginToServer();
+        }else{// no saved data: login or create account
+           loginForm.show(root,connectionManager);
         }
+    }
 
     public void hide(){ mainRoot.removeChildObject(root); }
 
@@ -177,15 +177,50 @@ public class TutorialMenu extends GVRSceneObject {
     }
 
     public void resultServerCommand(String cmd, String query,String result){
-        Log.d(TAG, "Server cmd "+cmd+query+" Result: "+result);
+        Log.d(TAG, "Server cmd answer "+cmd+query+" Result: "+result);
+        try{
+            JSONArray resJson = new JSONArray(result);
+            int code = resJson.optInt(1);
+            String servCmd = resJson.optString(0);
+            String servAnswer = resJson.optString(2);
+           // Log.d(TAG, "Server cmd answer "+code+" cmd="+servCmd+" ans="+servAnswer);
+            if(code==0){ Log.d(TAG, "Error Server cmd answer "+" cmd="+servCmd+" ans="+servAnswer);
+                new AlertMsg(gContext,3000,servAnswer,24);
+            }else {
+                switch(servCmd) {
+                    case "login": saveLogin(query); sessionID = resJson.optInt(2); break;
+                    case "logout": sessionID = 0; break;
+                    case "register": sessionID = resJson.optInt(2); saveLogin(query); break;
+                    case "find": Log.d(TAG, "Server answer for find " + servAnswer);
+                        JSONArray findAnswer = resJson.getJSONArray(2);
+                        Log.d(TAG, "Server answer for find " + servAnswer);
+                        break;
+                    case "insert": Log.d(TAG, "Server answer for insert " + servAnswer);
+                        JSONArray insertAnswer = resJson.getJSONArray(2);
+                        break;
+                    default: Log.d(TAG, "Error can not recognize server answer " + " cmd=" + servCmd + " ans=" + servAnswer); break;
+                }
+            }
+        }catch (Exception e){ Log.d(TAG, "Server cmd result parse error! "+cmd+query+" Result: "+result);
+            new AlertMsg(gContext,3000,"Attention!\n Can not recognize server answer.\n Please repeat last action one more time.",24);
+        }
     }
 
-    public void saveLogin(String login, String pswd){
-        SharedPreferences local_data = gContext.getContext().getSharedPreferences("com.ongoza.VRTE4.userDetails",Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = local_data.edit();
-        editor.putString("login",login);
-        editor.putString("pswd",pswd);
-        editor.apply();
+    public void saveLogin(String query){
+        int br = query.indexOf('&');
+        int iL = query.indexOf("l=");
+        if(br>0&&iL>br&&query.length()>iL+4){
+            String login = query.substring(iL+2,br);
+            String pswd = query.substring(br+3);
+            Log.d(TAG, "Parse Server query login="+login+"=pass="+pswd);
+            if(!userLogin.equals(login)&&!userPass.equals(pswd)){
+                userLogin = login; userPass = pswd;
+                SharedPreferences local_data = gContext.getContext().getSharedPreferences("com.ongoza.VRTE4.userDetails",Context.MODE_PRIVATE);
+                SharedPreferences.Editor editor = local_data.edit();
+                editor.putString("login",login);
+                editor.putString("pswd",pswd);
+                editor.apply();}
+        }else{Log.d(TAG, "Error Parse Server query="+query);}
     }
 
     public void showMainMenu(){
