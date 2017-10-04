@@ -24,6 +24,8 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.TimeZone;
+import java.util.UUID;
 
 import static java.lang.Math.atan;
 import static java.lang.Math.toDegrees;
@@ -54,6 +56,7 @@ public class TutorialMenu extends GVRSceneObject {
     int totalPages = 1;
     private ConnectionManager connectionManager;
     GVRSceneObject mainRoot;
+    private static String guid;
     TutorialMenu tMenu;
     int selectedTutorialNumber = -1;
     int sessionID=0;
@@ -73,7 +76,8 @@ public class TutorialMenu extends GVRSceneObject {
         this.tMenu = this;
         BUTTON_TYPE = btnType;
         Log.d(TAG,"start menu");
-        connectionManager = new ConnectionManager(this,gContext);
+        loadGUID();
+        connectionManager = new ConnectionManager(this,gContext,guid);
         root = new GVRSceneObject(gContext);
         root.setName("root_TutorialMenu");
         root.getTransform().setPosition(0,0,-6.5f);
@@ -123,40 +127,43 @@ public class TutorialMenu extends GVRSceneObject {
         SharedPreferences userdetails = gContext.getContext().getSharedPreferences("com.ongoza.VRTE4.userDetails", Context.MODE_PRIVATE);
         userLogin = userdetails.getString("login", "");
         userPass = userdetails.getString("pswd", "");
-        Log.d(TAG,"saved login "+userLogin+" "+userPass);
+        //Log.d(TAG,"saved login "+userLogin+" "+userPass);
         if(!userLogin.equals("")&&!userPass.equals("")){loginToServer();
         }else{// no saved data: login or create account
-           loginForm.show(root,connectionManager);
-        }
+           loginForm.show(root,connectionManager);  }
     }
 
     public void hide(){ mainRoot.removeChildObject(root); }
 
-    private void loadItemsServer(){
-        //String allData = loadItemsLocal();
-//        _find?criteria=%7B%22x%22%3A2%7D'
-        // _more?id=1&amp;batch_size=1'
-        // find?batch_size=1'
-        String data = "?batch_size="+Integer.toString(itemsPerPage);
-
-        //final ResultListener listener
-        connectionManager.startDownload("takeAllTutorials","AllTutorials", data);
-    }
+//    private void loadItemsServer(){
+//        String allData = loadItemsLocal();
+////        _find?criteria=%7B%22x%22%3A2%7D'
+//        // _more?id=1&amp;batch_size=1'
+//        // find?batch_size=1'
+//         String data = "?batch_size="+Integer.toString(itemsPerPage);
+//
+//        //final ResultListener listener
+//        connectionManager.startDownload("takeAllTutorials","AllTutorials", data);
+//    }
 
     public void updateTutorials(JSONArray jArr){
        tutorialsArray = jArr; showItems();
     }
 
     public void loginToServer(){
-            // check login&&pass
-            Log.d(TAG,"login&pswd="+userLogin+" "+userPass);
-            String data='?'+userLogin+'&'+userPass;
+        // check login&&pass
+       // userPass="11";
+        Log.d(TAG,"login&pswd="+userLogin+" "+userPass);
+        String query="?l="+userLogin+"&p="+userPass;
+
+        //String data="?l="+userLogin+"&p="+userPass;
         String type = "login";
-            //final ResultListener listener
-            boolean sended= connectionManager.startSendCmdToServer(type,data);
-            Log.d(TAG,"Result send to server: "+sended);
-            //checkLogin(uname,upass);
-            // sync tutorial data
+        //final ResultListener listener
+        connectionManager.setLoginQuery(query);
+        boolean sended= connectionManager.startSendToServer(type,"GET","&tz="+TimeZone.getDefault().getID(),"");
+        Log.d(TAG,"Result send to server: "+sended);
+        //checkLogin(uname,upass);
+        // sync tutorial data
         if(sended){
             root.removeChildObject(loginForm.getRoot());
             //TODO show message: wait for the server answer
@@ -166,38 +173,50 @@ public class TutorialMenu extends GVRSceneObject {
     }
 
     private void startShowMainMenu(){
+        Log.d(TAG,"startShowMainMenu");
         createHeader();
         createFooter();
         createLeftPanel();
         createRightPanel();
-//            loadItemsLocal();
-        loadItemsServer();
+        Log.d(TAG,"startShowMainMenu  2");
         createEmptyItems();
-        showItems();
+        Log.d(TAG,"startShowMainMenu end");
+        //loadItemsLocal();
+        loadItemsServer("{}");
+        Log.d(TAG,"startShowMainMenu load end");
     }
 
-    public void resultServerCommand(String cmd, String query,String result){
-        Log.d(TAG, "Server cmd answer "+cmd+query+" Result: "+result);
+    public void serverAnswerHandler(String cmd, String query,String result,String queryLogin){
+        Log.d(TAG, "Server cmd answer "+cmd+query);
         try{
             JSONArray resJson = new JSONArray(result);
             int code = resJson.optInt(1);
             String servCmd = resJson.optString(0);
             String servAnswer = resJson.optString(2);
-           // Log.d(TAG, "Server cmd answer "+code+" cmd="+servCmd+" ans="+servAnswer);
-            if(code==0){ Log.d(TAG, "Error Server cmd answer "+" cmd="+servCmd+" ans="+servAnswer);
+            Log.d(TAG, "Server cmd answer 2="+code+" cmd="+servCmd);
+            if(code<0){
+                Log.d(TAG, "Error Server cmd answer "+" cmd="+servCmd+" ans="+servAnswer);
                 new AlertMsg(gContext,3000,servAnswer,24);
+                switch(servCmd) {
+                    case "login": loginForm.show(root,connectionManager); break;
+                    case "register": loginForm.show(root,connectionManager); break;
+                    case "client": Log.d(TAG, "This erro on client side"); break;
+                    default: break;
+                }
             }else {
                 switch(servCmd) {
-                    case "login": saveLogin(query); sessionID = resJson.optInt(2); break;
+                    case "login": saveLogin(queryLogin); sessionID = resJson.optInt(2);
+                        Log.d(TAG, "Successeful connect to server sessionID="+sessionID);
+                        startShowMainMenu(); break;
                     case "logout": sessionID = 0; break;
-                    case "register": sessionID = resJson.optInt(2); saveLogin(query); break;
-                    case "find": Log.d(TAG, "Server answer for find " + servAnswer);
-                        JSONArray findAnswer = resJson.getJSONArray(2);
-                        Log.d(TAG, "Server answer for find " + servAnswer);
+                    case "register": sessionID = resJson.optInt(2); saveLogin(queryLogin);
+                        startShowMainMenu(); break;
+                    case "find": Log.d(TAG, "Server answer for find");
+                        tutorialsArray = new JSONArray(servAnswer);
+                        showItems();
+                     //   Log.d(TAG, "Server answer for find arr=" + tutorialsArray.toString());
                         break;
-                    case "insert": Log.d(TAG, "Server answer for insert " + servAnswer);
-                        JSONArray insertAnswer = resJson.getJSONArray(2);
-                        break;
+                    case "insert": Log.d(TAG, "Answer: Server insert items: " + servAnswer);   break;
                     default: Log.d(TAG, "Error can not recognize server answer " + " cmd=" + servCmd + " ans=" + servAnswer); break;
                 }
             }
@@ -209,11 +228,13 @@ public class TutorialMenu extends GVRSceneObject {
     public void saveLogin(String query){
         int br = query.indexOf('&');
         int iL = query.indexOf("l=");
-        if(br>0&&iL>br&&query.length()>iL+4){
+//        Log.d(TAG, "Save login="+query+" br="+br+" il="+iL);
+        if(br>1&&iL<br&&query.length()>br+4){
             String login = query.substring(iL+2,br);
             String pswd = query.substring(br+3);
-            Log.d(TAG, "Parse Server query login="+login+"=pass="+pswd);
-            if(!userLogin.equals(login)&&!userPass.equals(pswd)){
+//            Log.d(TAG, "Parse Server query login="+login+"=pass="+pswd);
+            if(!userLogin.equals(login)||!userPass.equals(pswd)){
+                Log.d(TAG, "Save new login="+login+"and password="+pswd);
                 userLogin = login; userPass = pswd;
                 SharedPreferences local_data = gContext.getContext().getSharedPreferences("com.ongoza.VRTE4.userDetails",Context.MODE_PRIVATE);
                 SharedPreferences.Editor editor = local_data.edit();
@@ -223,11 +244,12 @@ public class TutorialMenu extends GVRSceneObject {
         }else{Log.d(TAG, "Error Parse Server query="+query);}
     }
 
-    public void showMainMenu(){
-        checkLocalDir();
-    }
+//    public void showMainMenu(){
+//        checkLocalDir();
+//    }
 
-    private String loadItemsLocal(){
+    private void loadItemsLocal(){
+        Log.d(TAG,"start loadItemsLocal");
         String allData ="";
         int len = 20;
             for(int i=0; i<len;i++){
@@ -248,9 +270,24 @@ public class TutorialMenu extends GVRSceneObject {
                 }catch (Exception e){ Log.d(TAG,"Error parse json");
                 }
             }
-        //    Log.d(TAG,"tutorialsArray ="+allData);
-        return allData;
+           // Log.d(TAG,"tutorialsArray ="+allData);
+       // return allData;
+        showItems();
         }
+
+    private void loadItemsServer(String queryStr){
+        JSONArray sendArr = new JSONArray();
+        try {
+            JSONObject item = new JSONObject(queryStr);
+            sendArr.put(item);
+            String query = "&is=" + sessionID;
+            String data = "docs=" + sendArr.toString();
+            String type = "find";
+            // Log.d(TAG, "test find="+queryStr);
+            boolean sended = connectionManager.startSendToServer(type, "POST", query, data);
+        }catch (Exception e){ Log.d(TAG, "Error parse string to JSON for insert command.");}
+        showItems();
+    }
 
     private void createEmptyItems(){
             Bitmap bitmapTextureEmpty = createEmptyTexture(ITEM_SIZE[0],ITEM_SIZE[1]);
@@ -470,5 +507,22 @@ public class TutorialMenu extends GVRSceneObject {
 //            paint.setAlpha(255);
         return bitmapAlpha;
     }
+
+    private void loadGUID(){
+//        Log.d(TAG, " start guid 1");
+        SharedPreferences local_data = gContext.getContext().getSharedPreferences("com.ongoza.colortest.guid",Context.MODE_PRIVATE);
+        try{ guid = local_data.getString("guid","");
+//            Log.d(TAG,"loadData="+guid);
+            if(guid.equals("")){
+                guid = UUID.randomUUID().toString();
+//                Log.d(TAG, " start guid 1 = "+guid);
+                SharedPreferences.Editor editor = local_data.edit();
+                editor.putString("guid",guid);
+                editor.apply();
+            }
+        }catch (Exception e){
+            Log.d(TAG,"exception: no local data");}
+    }
+
 
 }

@@ -14,6 +14,7 @@ import org.gearvrf.GVRContext;
 import org.gearvrf.GVRSceneObject;
 
 import java.util.List;
+import java.util.TimeZone;
 
 /**
  * Created by os on 9/19/17.
@@ -41,7 +42,6 @@ public class LoginForm extends GVRSceneObject {
     private GVRSceneObject curInputLabel;
     private ConnectionManager connectionManager;
 //    GVRSceneObject inputPassword;
-
     private GVRContext gContext;
     private GVRSceneObject root;
     private GVRSceneObject root_form;
@@ -95,6 +95,7 @@ public class LoginForm extends GVRSceneObject {
     }
     
     private void nextRegister(){
+        Log.d(TAG, "register check="+!registerNew);
         if(registerNew){
             registerNew=false;
             os_gui.updateText(gContext.getMainScene().getSceneObjectByName("kbdRegister"), "New user",BUTTON_SIZE);
@@ -114,8 +115,10 @@ public class LoginForm extends GVRSceneObject {
         }else{
             Log.d(TAG, "End input data login tr=" +registerNew);
             if(registerNew){
-                if(password.equals("")) {
-                    Log.d(TAG, "End input data login=" + login + " password=" + password);
+                String name = curInput.getName();
+                Log.d(TAG, "End input data login=" + login + " password=" + password+" name="+name);
+                if(name.equals("PasswordInput")) {
+                    password = inputText;
                     inputText="";
                     gContext.getMainScene().getSceneObjectByName("LoginInput").getTransform().translate(0, 1, 0);
                     gContext.getMainScene().getSceneObjectByName("LoginLabel").getTransform().translate(0, 1, 0);
@@ -124,20 +127,28 @@ public class LoginForm extends GVRSceneObject {
                     curInput = os_gui.createItem(gContext,root_form, "label","", "PasswordInput2", "", LABEL_SIZE[0], LABEL_SIZE[1], 0, KEYBOARD_TOP_PAD + 3 * (KEY_BUTTON_SIZE + KEY_BUTTON_PAD));
                     os_gui.createItem(gContext,root_form, "label","", "PasswordLabel2", "Password 2", 1.6f, LABEL_SIZE[1], -3.9f, KEYBOARD_TOP_PAD + 3 * (KEY_BUTTON_SIZE + KEY_BUTTON_PAD));
                 }else{
+                    Log.d(TAG, "End input data login 2=" + login + " password=" + password+"InputText="+inputText);
                     if(password.equals(inputText)){
                         //start register user
-                        password = inputText;
+                        //password = inputText;
                         String query="?l="+login+"&p="+password;
-                        boolean sended= connectionManager.startSendCmdToServer("register",query);
+                        Log.d(TAG, "End input data query=" + query);
+                        connectionManager.setLoginQuery(query);
+                        boolean sended= connectionManager.startSendToServer("register","GET","&tz="+TimeZone.getDefault().getID(),"");
                         if(!sended){new AlertMsg(gContext,3000,"Attention!\n Can not connect to server.\nPlease check Internet connection.",24);}
-                    }else{new AlertMsg(gContext,3000,"Attention!\n Your new password and confirmation password do not match.",24);}
+                    }else{
+                        new AlertMsg(gContext,3000,"Attention!\n Your new password and confirmation password do not match.\nTry one more time.",24);
+                        inputText="";
+                        os_gui.updateText(curInput, inputText,LABEL_SIZE);
+                    }
                 }
             }else {
                 // check login and sync data
                 password = inputText;
                 String query="?l="+login+"&p="+password;
                 Log.d(TAG,"Check login="+login+" password="+password);
-                boolean sended= connectionManager.startSendCmdToServer("login",query);
+                connectionManager.setLoginQuery(query);
+                boolean sended= connectionManager.startSendToServer("login","GET","&tz="+TimeZone.getDefault().getID(),"");
                 if(!sended){new AlertMsg(gContext,3000,"Attention!\n Can not connect to server.\nPlease check Internet connection.",24);}
             }
         }

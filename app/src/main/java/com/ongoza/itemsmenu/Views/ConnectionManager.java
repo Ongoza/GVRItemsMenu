@@ -16,9 +16,12 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.util.TimeZone;
+
 /**
  * Created by os on 8/30/17.
  * // list server commands:
@@ -34,10 +37,12 @@ public class ConnectionManager {
     private final String TAG = MainActivity.getTAG();
     private final String USER_AGENT = "VRTE/4.0";
     private final String IP = "192.168.1.30";
-    static final String CMD_INSERT = "insert";
+//    static final String CMD_INSERT = "insert";
     static final String CMD_TAKE = "find";
-    static final String CMD_LOGIN = "login";
-    static final String CMD_REGISTER = "register";
+//    static final String CMD_LOGIN = "login";
+//    static final String CMD_REGISTER = "register";
+    private String guid;
+    public String queryLogin;
 
     private final String urlStr = "http://"+IP+":27080/local/dbTutorials/_";
     HashMap<String,TakeServerString> connectionThreads = new HashMap<>();
@@ -46,9 +51,14 @@ public class ConnectionManager {
     GVRContext gContext;
     HashMap<String,Integer> connectionThreadsProgress = new HashMap<>();
 
-    public ConnectionManager(TutorialMenu tutorialMenu, GVRContext gContext){
+    public ConnectionManager(TutorialMenu tutorialMenu, GVRContext gContext, String id){
         this.tutorialMenu = tutorialMenu;
         this.gContext = gContext;
+        this.guid = id;
+    }
+
+    public void setLoginQuery(String str){this. queryLogin = str;
+        Log.d(TAG,"set qeryLogin="+str);
     }
 
     private boolean startDownloadItems(String name, String cmd, String data){
@@ -65,8 +75,9 @@ public class ConnectionManager {
         return result;
     }
 
-    //public void startDownload(String command, String type, String data){
-//connectionManager.startDownload("takeVideoTutorials","#AAA","http://192.168.1.30/2/test1.mp4");
+    // public void startDownload(String command, String type, String data){
+    // connectionManager.startDownload("takeVideoTutorials","#AAA","http://192.168.1.30/2/test1.mp4");
+    // url=http://192.168.1.30:27080/local/dbTutorials/_login?l=os&p=11
 
 
     public void startDownload(String command, String type, String data){
@@ -79,7 +90,7 @@ public class ConnectionManager {
                     startDownloadVideo(type,data);
                     break;
                 case "cmdToServer":
-                    startSendCmdToServer(command, data);
+                    //startSendCmdToServer(command, data,"");
                     break;
                 default: break;
             }
@@ -116,55 +127,75 @@ public class ConnectionManager {
         }
     }
 
-    public boolean startSendCmdToServer(String cmd, String data){
+    public boolean startSendToServer(String cmd, String type, String data, String post){
         boolean result = false;
         TakeServerString newConnection = new TakeServerString();
         try {
-            Log.d(TAG, "Start connecting to Server "+cmd+data);
-            newConnection.execute(cmd, data);
+           // Log.d(TAG, "Start connecting to Server "+cmd+" "+data+" "+type+" "+post+" login="+queryLogin);
+            newConnection.execute(cmd,type,data,post);
             connectionThreads.put(data,newConnection);
             result = true;
-        } catch (Exception e) {
-            Log.d(TAG, "Does not connected to Server "); }
+        } catch (Exception e){Log.d(TAG, "Does not connected to Server "); }
         return result;
     }
 
-    public void resultServerCommand(String name, String cmd, String result){
-        Log.d(TAG,"Server has said on command "+name + " result ="+result);
-        tutorialMenu.resultServerCommand(name,cmd,result);
-    }
 
+    public void resultServerCommand(String name, String cmd, String result){
+        //Log.d(TAG,"Server has said on command "+name + " result ="+result);
+        tutorialMenu.serverAnswerHandler(name,cmd,result,queryLogin);
+    }
 
     public class TakeServerString extends AsyncTask<String, Integer, String> {
 
         String outputResult;
         String cmd;
-        String query;
+        String link;
+        String post;
 
         @Override protected String doInBackground(String... data) {
             outputResult = ""; String output = "";
-            // Log.d(TAG, " start save sendingString=" + data[0]+ data[1]+" "+CmdTake );
-            try {  cmd = data[0]; query=data[1];
-                //Log.d(TAG, " start save sendingString=" + sendingString);
-                URL url = new URL(urlStr+cmd+query);
-                Log.d(TAG, " start save url=" + url.toString());
-                HttpURLConnection con = (HttpURLConnection) url.openConnection();
-                con.setRequestMethod("GET");
-                con.setReadTimeout(600); // millis
-                con.setConnectTimeout(1000); // millis
-                con.setRequestProperty("Accept-Language", "UTF-8");
-                con.setRequestProperty("Accept-Charset", "UTF-8");
-                con.setRequestProperty("User-Agent", USER_AGENT);
-                con.connect();
-                String line;
-                try { BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-                    while ((line = in.readLine()) != null){ output += line;}
-                } finally {  con.disconnect(); }
-                Log.d(TAG, " start save 2 response="+output);
-                outputResult = output;
-            }catch(Exception e){
-//            Log.d(TAG, "Not connected to DB "+ Arrays.toString(e.getStackTrace()));
-                Log.d(TAG, "Not connected to DB ");}
+            if(!queryLogin.equals("")) {
+                 Log.d(TAG, " start save sendingString=" + data[0]+ data[1]+" "+data[2]+" "+data[3]+" login="+queryLogin );
+                try {
+                    cmd = data[0];
+                    link = data[2];
+                    post = data[3];
+                    String type = data[1];
+                    //Log.d(TAG, " start save sendingString=" + sendingString);
+                    URL url = new URL(urlStr + cmd + queryLogin + link + "&id=" + guid);
+                    Log.d(TAG, " start save url=" + url.toString());
+                    HttpURLConnection con = (HttpURLConnection) url.openConnection();
+                    con.setRequestMethod(type);
+                    if (type.equals("POST")) {con.setDoOutput(true);}
+                    con.setReadTimeout(5000); // millis
+                    con.setConnectTimeout(5000); // millis
+                    con.setRequestProperty("Accept-Language", "UTF-8");
+                    con.setRequestProperty("Accept-Charset", "UTF-8");
+                    con.setRequestProperty("User-Agent", USER_AGENT);
+                    con.connect();
+                    if (type.equals("POST")) {
+                        OutputStream wd = con.getOutputStream();
+                        wd.write(post.getBytes());
+                        wd.flush();
+                    }
+                    String line;
+                    Log.d(TAG, "connect to server.");
+                    try {
+                        BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                        while ((line = in.readLine()) != null) {
+                            output += line;
+                        }
+                    } finally {
+                        con.disconnect();
+                    }
+                    //Log.d(TAG, " start save 2 response=" + output);
+                    outputResult = output;
+                } catch (Exception e) {
+                    Log.d(TAG, "Not connected to Server " + Arrays.toString(e.getStackTrace()));
+                    Log.d(TAG, "Server connection error cmd=" +cmd+" link="+link+" query="+post);
+                    output = "[\"client\",-1,\"Error!\\nClient can not connect to server.\"]";
+                }
+            }else{ Log.d(TAG, "No login and password data!"); }
             return output;
         }
 
@@ -175,8 +206,11 @@ public class ConnectionManager {
 //        }
 
         @Override protected void onPostExecute(String result) {
-            // Log.d(TAG,"Downloaded " + result);
-            resultServerCommand(cmd,query,result);
+            //Log.d(TAG,"Downloaded " + result);
+            if(!result.equals("")){resultServerCommand(cmd,link,result);
+            }else{
+                Log.d(TAG,"Downloaded empty result.");
+            }
         }
     }
 
